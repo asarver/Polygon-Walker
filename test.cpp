@@ -325,7 +325,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  if (numSides != 0 && haveROI && haveStartingPoint) {
+  if (numSides != 0 && haveROI && haveStartingPoint && error >= 0 && error < 1) {
     printf("Testing %d sided polygon with %d vehicles\n", numSides, numVehicles);
     Matrix<Vector2d, Dynamic, Dynamic> output(numVehicles, regionOfInterest.rows()+2);
     VectorXi number_of_outputs(numVehicles);
