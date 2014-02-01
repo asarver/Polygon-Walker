@@ -246,13 +246,14 @@ void runDefaultTestCase() {
 }
 
 void displayHelp() {
-  printf("./walker --vehicles[-v] ... --polygon[-p] ... --start[-s] ... --error[-e] ... demo\n");
-  printf("The polygon walker splits an n-sided polygon into x many equal areas along a specified starting line.\n\n");
-  printf("--vehicles[-v] n specifies n many areas\n");
-  printf("--polygon[-p] x0 y0 x1 y1 ... specifies the number of points that will be given followed by the points\n");
-  printf("--start[-s] x0 y0 x1 y1 specifies the two starting points\n");
-  printf("--error[-e] e specifies e error (must be between 0 and 1)\n");
-  printf("demo starts the demo with default test cases\n\n");
+  printf("./walker\n");
+  printf("The polygon walker splits an n-sided two-dimensional polygon into x many equal areas along a specified starting line.\n\n");
+  printf("-s n, --segments=n Specifies the points of the polygon in x y coordinates. The points must be listed in counter clock wise or clock wise order.\n");
+  printf("-p x0,y0,x1,y1,..., --polygon=x0,y0,x1,y1,... Specifies two points where the polygon will be split. The two points must be on an existing edge.\n");
+  printf("-s x0,y0,x1,y1, --start=x0,y0,x1,y1 Specifies two points where the polygon will be split. The two points must be on an existing edge.\n");
+  printf("-e err, --error=err Specifies a percentage error of how equal the segments shoudl be. err must be between 0 and 1.\n");
+  printf("--demo Starts the default test cases.\n");
+  printf("--help  Displays the help menu. The help menu is also displayed when there are no arguments.\n\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -305,8 +306,8 @@ int main(int argc, char* argv[]) {
     } else if ((string(argv[i]) == "-s" || string(argv[i]) == "--start") && i+4 < argc) {
       try {
         for (int j = 0; j <4; j+=2) {
-          double x = atof(string(argv[j+i+2]).c_str());
-          double y = atof(string(argv[j+i+3]).c_str());
+          double x = atof(string(argv[j+i+1]).c_str());
+          double y = atof(string(argv[j+i+2]).c_str());
           vehicleStartingPoints(j/2) = Vector2d(x,y);
         }
         haveStartingPoint = true;
