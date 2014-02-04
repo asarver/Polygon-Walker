@@ -1,6 +1,7 @@
 #include "walker.h"
 #include <assert.h>
 #include <stdio.h>
+#include <sstream>
 
 using namespace std;
 using namespace Eigen;
@@ -249,8 +250,8 @@ void displayHelp() {
   printf("./walker\n");
   printf("The polygon walker splits an n-sided two-dimensional polygon into x many equal areas along a specified starting line.\n\n");
   printf("-s n, --segments=n Specifies the points of the polygon in x y coordinates. The points must be listed in counter clock wise or clock wise order.\n");
-  printf("-p x0,y0,x1,y1,..., --polygon=x0,y0,x1,y1,... Specifies two points where the polygon will be split. The two points must be on an existing edge.\n");
-  printf("-s x0,y0,x1,y1, --start=x0,y0,x1,y1 Specifies two points where the polygon will be split. The two points must be on an existing edge.\n");
+  printf("-p n,x0,y0,x1,y1,..., --polygon=n,x0,y0,x1,y1,... Specifies n sides followed by the different points that make up the polygon seperated by a comma.\n");
+  printf("-st x0,y0,x1,y1, --start=x0,y0,x1,y1 Specifies two points where the polygon will be split. The two points must be on an existing edge.\n");
   printf("-e err, --error=err Specifies a percentage error of how equal the segments shoudl be. err must be between 0 and 1.\n");
   printf("--demo Starts the default test cases.\n");
   printf("--help  Displays the help menu. The help menu is also displayed when there are no arguments.\n\n");
@@ -276,57 +277,121 @@ int main(int argc, char* argv[]) {
     displayHelp();
   }
   
-  // if running own case, at a minimum need number of vehicles, 
+  // if running own case, at a minimum need number of segments, 
   for (int i = 1; i < argc; i++) {
-    if ((string(argv[i]) == "-v" || string(argv[i]) == "--vehicles") && i+1 < argc) {
+    if (string(argv[i]) == "-s" || string(argv[i]).find("--segments=") != string::npos) {
       try {
-        numVehicles = atoi(argv[i+1]);
+        if (string(argv[i]) == "-s" && i + 1 < argc) {
+          numVehicles = atoi(argv[i+1]);
+        } else {
+          string parsed, input = string(argv[i]);
+          istringstream input_stream(input);
+          // throw away first part of argument
+          getline(input_stream, parsed, '=');
+          getline(input_stream, parsed, '=');
+          numVehicles = atoi(parsed.c_str()); 
+        }
+        printf("vehicles %d\n", numVehicles);
       } catch (exception) {
         numVehicles=0;
       }
-    } else if ((string(argv[i]) == "-p" || string(argv[i]) == "--polygon") && i+1 < argc) {
+    } else if (string(argv[i]) == "-p" || string(argv[i]).find("--polygon=") != string::npos) {
       try {
-        numSides = atoi(argv[i+1]);
-      } catch (exception) {
-        numSides=0;
-      }
-      try {
-        if (numSides*2 + i < argc && numSides > 2) {
-          regionOfInterest = Matrix<Vector2d, Dynamic, 1>(numSides);
-          for (int j = 0; j < numSides*2; j+=2) {
-            double x = atof(string(argv[j+i+2]).c_str());
-            double y = atof(string(argv[j+i+3]).c_str());
-            regionOfInterest(j/2) = Vector2d(x,y);
-            haveROI = true;
-          }
+        string parsed, input;
+        if (string(argv[i]) == "-p" && i + 1 < argc) {
+          input = string(argv[i+1]);
+        } else {
+          input = string(argv[i]);
+          istringstream input_stream(input);
+          getline(input_stream, parsed, '=');
+          getline(input_stream, parsed, '=');
+          input = parsed;
         }
+        istringstream input_stream(input);
+        getline(input_stream, parsed, ',');
+        // grab number of sides
+        numSides = atoi(parsed.c_str());
+        printf("numSides %d\n", numSides);
+        regionOfInterest = Matrix<Vector2d, Dynamic, 1>(numSides);
+        double x,y;
+        int j = 0;
+        
+        while (getline(input_stream, parsed, ','))
+        {
+          if (j % 2 == 0) {
+            x = atof(parsed.c_str());
+            printf("x: %f ", x);
+          } else {
+            y = atof(parsed.c_str());
+            printf("y: %f\n", y);
+            regionOfInterest(j/2) = Vector2d(x,y);
+          }
+          j++;
+        }
+        
+        haveROI = true;
+        numSides = (j+1)/2;
+        printf("haveROI %d, numSides %d\n", haveROI, numSides);
       } catch (exception) {
+        numSides = 0;
         haveROI = false;
       }
-    } else if ((string(argv[i]) == "-s" || string(argv[i]) == "--start") && i+4 < argc) {
+    } // should be the first and last points, needs to be changed to do this automatically
+    else if (string(argv[i]) == "-st" || string(argv[i]).find("--start=") != string::npos) {
       try {
-        for (int j = 0; j <4; j+=2) {
-          double x = atof(string(argv[j+i+1]).c_str());
-          double y = atof(string(argv[j+i+2]).c_str());
-          vehicleStartingPoints(j/2) = Vector2d(x,y);
+        string parsed, input;
+        if (string(argv[i]) == "-st" && i + 1 < argc) {
+          input = string(argv[i+1]);
+        } else {
+          input = string(argv[i]);
+          istringstream input_stream(input);
+          getline(input_stream, parsed, '=');
+          getline(input_stream, parsed, '=');
+          input = parsed;
+        }
+        
+        istringstream input_stream(input);
+        double x,y;
+        int j = 0;
+        
+        while (getline(input_stream, parsed, ','))
+        {
+          if (j % 2 == 0) {
+            x = atof(parsed.c_str());
+            printf("x: %f ", x);
+          } else {
+            y = atof(parsed.c_str());
+            printf("y: %f\n", y);
+            vehicleStartingPoints(j/2) = Vector2d(x,y);
+          }
+          j++;
         }
         haveStartingPoint = true;
       } catch (exception) {
         haveStartingPoint = false;
           continue;
       }
-    } else if ((string(argv[i]) == "-e" || string(argv[i]) == "--error") && i+1 < argc) {
+    } else if (string(argv[i]) == "-e" || string(argv[i]).find("--error=") != string::npos) {
       try {
-        error = atof(string(argv[i+1]).c_str());
+        if (string(argv[i]) == "-e" && i + 1 < argc) {
+          error = atof(string(argv[i+1]).c_str());
+        } else {
+          string parsed, input = string(argv[i]);
+          istringstream input_stream(input);
+          getline(input_stream, parsed, '=');
+          getline(input_stream, parsed, '=');
+          error = atof(parsed.c_str());
+        }
+        printf("error %f\n", error);
       } catch (exception) {
         error = 0;
       }
-    } else if ((string(argv[i]) == "demo")) {
+    } else if ((string(argv[i]) == "--demo")) {
       runDefaultTestCase();
     }
   }
 
-  if (numSides != 0 && haveROI && haveStartingPoint && error >= 0 && error < 1) {
+  if (numSides > 2 && haveROI && haveStartingPoint && error >= 0 && error < 1) {
     printf("Testing %d sided polygon with %d vehicles\n", numSides, numVehicles);
     Matrix<Vector2d, Dynamic, Dynamic> output(numVehicles, regionOfInterest.rows()+2);
     VectorXi number_of_outputs(numVehicles);
