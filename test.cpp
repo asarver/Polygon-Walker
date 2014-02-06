@@ -3,23 +3,31 @@
 #include <stdio.h>
 #include <sstream>
 
+
 using namespace std;
 using namespace Eigen;
 
-void validateTestCase(int numVehicles, double error, Matrix<Vector2d, Dynamic, 1> regionOfInterest, Matrix<Vector2d, Dynamic, Dynamic> output, VectorXi number_of_outputs) {
+void validateTestCase(int numVehicles, double error, Point2DVector regionOfInterest, Point2DVector output, VectorXi number_of_outputs) {
   
   assert(number_of_outputs.rows() == numVehicles);
+  Point2DVector ROI;
   double vehicleArea = calculateArea(regionOfInterest);
+  int start = 0;
   printf("\tArea: %f\n", vehicleArea);
   for (int row = 0; row < numVehicles; row++) { 
     double goalArea = vehicleArea / numVehicles;
     printf ("\tVehicle: %d\n",row);
     printf("\t\t");
-    Matrix<Vector2d, Dynamic, 1> ROI(number_of_outputs(row));
-    for (int col = 0; col < number_of_outputs(row); col++) {
-      double x = output(row,col).x();
-      double y = output(row,col).y();
-      ROI(col) = Vector2d(x,y);
+    ROI.clear();
+    if (row == 0) {
+      start = 0;
+    } else {
+      start += number_of_outputs(row-1);
+    }
+    for (int col = start; col < number_of_outputs(row)+start; col++) {
+      double x = output[col].x();
+      double y = output[col].y();
+      ROI.push_back(Vector2d(x,y));
       printf("(%f, %f) ", x, y); 
     }
     printf("\n\t\t");
@@ -38,9 +46,9 @@ void runDefaultTestCase() {
   int numVehicles=2;
   double error = .10;
   
-  Matrix<Vector2d, Dynamic, 1> regionOfInterest(3); 
-  Matrix<Vector2d, Dynamic, 1> vehicleStartingPoints(2);
-  Matrix<Vector2d, Dynamic, Dynamic> output(numVehicles, regionOfInterest.rows()+2);
+  Point2DVector regionOfInterest; 
+  Point2DVector vehicleStartingPoints;
+  Point2DVector output;
   VectorXi number_of_outputs(numVehicles);
   
   // the two points the vehicles are starting along: { (5,0) (0,0) }
@@ -49,30 +57,30 @@ void runDefaultTestCase() {
   // and the "lesser" point needs to start the region of interest and
   // if traversing the region of interest backwards, the "lesser" point needs to be listed first
   // and the "greater" point needs to be at the end of the list
-  vehicleStartingPoints(0) = Vector2d(5,0);
-  vehicleStartingPoints(1) = Vector2d(0,0);
+  vehicleStartingPoints.push_back(Vector2d(5,0));
+  vehicleStartingPoints.push_back(Vector2d(0,0));
   
-  //---- Test Case 1, Triangle { (0,0) (5,5) (0,5) }
+  //---- Test Case 1, Triangle { (0,0) (5,5) (5,0) }
   //---- Starting line: { (5,0) (0,0) }
   //---- Number of Vehicles: 2
   //---- Error: 10%
   //---- forward direction
   printf("Testing 3 sided polygon with 2 vehicles");
-  regionOfInterest(0) = Vector2d(0,0);
-  regionOfInterest(1) = Vector2d(5,5);
-  regionOfInterest(2) = Vector2d(5,0);
+  regionOfInterest.push_back(Vector2d(0,0));
+  regionOfInterest.push_back(Vector2d(5,5));
+  regionOfInterest.push_back(Vector2d(5,0));
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
   validateTestCase(numVehicles, error, regionOfInterest, output, number_of_outputs);
   
-  //---- Test Case 2, Triangle { (0,0) (5,5) (0,5) }
+  //---- Test Case 2, Triangle { (0,0) (5,5) (5,0) }
   //---- Starting line: { (5,0) (0,0) }
   //---- Number of Vehicles: 3
   //---- Error: 10%
   //---- forward direction
   printf("Testing 3 sided polygon with 3 vehicles");
   numVehicles = 3;
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  output.clear();
   number_of_outputs = VectorXi(numVehicles);
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
   validateTestCase(numVehicles, error, regionOfInterest, output, number_of_outputs);
@@ -84,14 +92,14 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 4 sided polygon with 2 vehicles");
   numVehicles = 2;
-  regionOfInterest = Matrix<Vector2d, Dynamic, 1>(4);
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  regionOfInterest.clear();
+  output.clear();
   number_of_outputs = VectorXi(numVehicles);
   
-  regionOfInterest(0) = Vector2d(0,0);
-  regionOfInterest(1) = Vector2d(0,5);
-  regionOfInterest(2) = Vector2d(5,5);
-  regionOfInterest(3) = Vector2d(5,0);
+  regionOfInterest.push_back(Vector2d(0,0));
+  regionOfInterest.push_back(Vector2d(0,5));
+  regionOfInterest.push_back(Vector2d(5,5));
+  regionOfInterest.push_back(Vector2d(5,0));
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
   validateTestCase(numVehicles, error, regionOfInterest, output, number_of_outputs);
@@ -103,7 +111,7 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 4 sided polygon with 3 vehicles");
   numVehicles = 3;
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  output.clear();
   number_of_outputs = VectorXi(numVehicles);
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
@@ -116,17 +124,18 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 5 sided polygon with 2 vehicles");
   numVehicles = 2;
-  regionOfInterest = Matrix<Vector2d, Dynamic, 1>(5);
-  vehicleStartingPoints(0) = Vector2d(10,0);
-  vehicleStartingPoints(1) = Vector2d(0,0);
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  regionOfInterest.clear();
+  vehicleStartingPoints.clear();
+  output.clear();
+  vehicleStartingPoints.push_back(Vector2d(10,0));
+  vehicleStartingPoints.push_back(Vector2d(0,0));
   number_of_outputs = VectorXi(numVehicles);
   
-  regionOfInterest(0) = Vector2d(0,0);
-  regionOfInterest(1) = Vector2d(0,5);
-  regionOfInterest(2) = Vector2d(5,10);
-  regionOfInterest(3) = Vector2d(10,5);
-  regionOfInterest(4) = Vector2d(10,0);
+  regionOfInterest.push_back(Vector2d(0,0));
+  regionOfInterest.push_back(Vector2d(0,5));
+  regionOfInterest.push_back(Vector2d(5,10));
+  regionOfInterest.push_back(Vector2d(10,5));
+  regionOfInterest.push_back(Vector2d(10,0));
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
   validateTestCase(numVehicles, error, regionOfInterest, output, number_of_outputs);
@@ -138,7 +147,7 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 5 sided polygon with 3 vehicles");
   numVehicles = 3;
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  output.clear();
   number_of_outputs = VectorXi(numVehicles);
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
@@ -151,18 +160,19 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 6 sided polygon with 2 vehicles");
   numVehicles = 2;
-  vehicleStartingPoints(0) = Vector2d(15,0);
-  vehicleStartingPoints(1) = Vector2d(0,0);
-  regionOfInterest = Matrix<Vector2d, Dynamic, 1>(6);
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  vehicleStartingPoints.clear();
+  regionOfInterest.clear();
+  output.clear();
+  vehicleStartingPoints.push_back(Vector2d(15,0));
+  vehicleStartingPoints.push_back(Vector2d(0,0));
   number_of_outputs = VectorXi(numVehicles);
   
-  regionOfInterest(0) = Vector2d(0,0);
-  regionOfInterest(1) = Vector2d(0,5);
-  regionOfInterest(2) = Vector2d(5,10);
-  regionOfInterest(3) = Vector2d(10,10);
-  regionOfInterest(4) = Vector2d(15,5);
-  regionOfInterest(5) = Vector2d(15,0);
+  regionOfInterest.push_back(Vector2d(0,0));
+  regionOfInterest.push_back(Vector2d(0,5));
+  regionOfInterest.push_back(Vector2d(5,10));
+  regionOfInterest.push_back(Vector2d(10,10));
+  regionOfInterest.push_back(Vector2d(15,5));
+  regionOfInterest.push_back(Vector2d(15,0));
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
   validateTestCase(numVehicles, error, regionOfInterest, output, number_of_outputs);
@@ -174,7 +184,7 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 6 sided polygon with 4 vehicles");
   numVehicles = 4;
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  output.clear();
   number_of_outputs = VectorXi(numVehicles);
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
@@ -187,7 +197,7 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 6 sided polygon with 5 vehicles");
   numVehicles = 5;
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  output.clear();
   number_of_outputs = VectorXi(numVehicles);
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
@@ -200,18 +210,18 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 8 sided polygon with 2 vehicles");
   numVehicles = 2;
-  regionOfInterest = Matrix<Vector2d, Dynamic, 1>(8);
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  regionOfInterest.clear();
+  output.clear();
   number_of_outputs = VectorXi(numVehicles);
   
-  regionOfInterest(0) = Vector2d(0,0);
-  regionOfInterest(1) = Vector2d(0,5);
-  regionOfInterest(2) = Vector2d(0,10);
-  regionOfInterest(3) = Vector2d(5,15);
-  regionOfInterest(4) = Vector2d(10,15);
-  regionOfInterest(5) = Vector2d(15,10);
-  regionOfInterest(6) = Vector2d(15,5);
-  regionOfInterest(7) = Vector2d(10,0);
+  regionOfInterest.push_back(Vector2d(0,0));
+  regionOfInterest.push_back(Vector2d(0,5));
+  regionOfInterest.push_back(Vector2d(0,10));
+  regionOfInterest.push_back(Vector2d(5,15));
+  regionOfInterest.push_back(Vector2d(10,15));
+  regionOfInterest.push_back(Vector2d(15,10));
+  regionOfInterest.push_back(Vector2d(15,5));
+  regionOfInterest.push_back(Vector2d(10,0));
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
   validateTestCase(numVehicles, error, regionOfInterest, output, number_of_outputs);
@@ -223,24 +233,25 @@ void runDefaultTestCase() {
   //---- forward direction
   printf("Testing 12 sided polygon with 2 vehicles");
   numVehicles = 2;
-  vehicleStartingPoints(0) = Vector2d(20,5);
-  vehicleStartingPoints(1) = Vector2d(15,0);
-  regionOfInterest = Matrix<Vector2d, Dynamic, 1>(12);
-  output = Matrix<Vector2d, Dynamic, Dynamic>(numVehicles, regionOfInterest.rows()+2);
+  vehicleStartingPoints.clear();
+  vehicleStartingPoints.push_back(Vector2d(20,5));
+  vehicleStartingPoints.push_back(Vector2d(15,0));
+  regionOfInterest.clear();
+  output.clear();
   number_of_outputs = VectorXi(numVehicles);
   
-  regionOfInterest(0) = Vector2d(15,0);
-  regionOfInterest(1) = Vector2d(10,5);
-  regionOfInterest(2) = Vector2d(5,10);
-  regionOfInterest(3) = Vector2d(0,15);
-  regionOfInterest(4) = Vector2d(5,20);
-  regionOfInterest(5) = Vector2d(10,25);
-  regionOfInterest(6) = Vector2d(15,30);
-  regionOfInterest(7) = Vector2d(20,25);
-  regionOfInterest(8) = Vector2d(25,20);
-  regionOfInterest(9) = Vector2d(30,15);
-  regionOfInterest(10) = Vector2d(25,10);
-  regionOfInterest(11) = Vector2d(20,5);
+  regionOfInterest.push_back(Vector2d(15,0));
+  regionOfInterest.push_back(Vector2d(10,5));
+  regionOfInterest.push_back(Vector2d(5,10));
+  regionOfInterest.push_back(Vector2d(0,15));
+  regionOfInterest.push_back(Vector2d(5,20));
+  regionOfInterest.push_back(Vector2d(10,25));
+  regionOfInterest.push_back(Vector2d(15,30));
+  regionOfInterest.push_back(Vector2d(20,25));
+  regionOfInterest.push_back(Vector2d(25,20));
+  regionOfInterest.push_back(Vector2d(30,15));
+  regionOfInterest.push_back(Vector2d(25,10));
+  regionOfInterest.push_back(Vector2d(20,5));
   
   getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
   validateTestCase(numVehicles, error, regionOfInterest, output, number_of_outputs);
@@ -261,8 +272,8 @@ int main(int argc, char* argv[]) {
   int numVehicles = 0;
   int numSides = 0;
   double error = 0;
-  Matrix<Vector2d, Dynamic, 1> regionOfInterest(numSides);
-  Matrix<Vector2d, 2, 1> vehicleStartingPoints;
+  Point2DVector regionOfInterest;
+  Point2DVector vehicleStartingPoints;
   bool haveStartingPoint = false;
   bool haveROI = false;
   
@@ -312,7 +323,6 @@ int main(int argc, char* argv[]) {
         // grab number of sides
         numSides = atoi(parsed.c_str());
         printf("numSides %d\n", numSides);
-        regionOfInterest = Matrix<Vector2d, Dynamic, 1>(numSides);
         double x,y;
         int j = 0;
         
@@ -324,7 +334,7 @@ int main(int argc, char* argv[]) {
           } else {
             y = atof(parsed.c_str());
             printf("y: %f\n", y);
-            regionOfInterest(j/2) = Vector2d(x,y);
+            regionOfInterest.push_back(Vector2d(x,y));
           }
           j++;
         }
@@ -362,7 +372,7 @@ int main(int argc, char* argv[]) {
           } else {
             y = atof(parsed.c_str());
             printf("y: %f\n", y);
-            vehicleStartingPoints(j/2) = Vector2d(x,y);
+            vehicleStartingPoints.push_back(Vector2d(x,y));
           }
           j++;
         }
@@ -393,7 +403,7 @@ int main(int argc, char* argv[]) {
 
   if (numSides > 2 && haveROI && haveStartingPoint && error >= 0 && error < 1) {
     printf("Testing %d sided polygon with %d vehicles\n", numSides, numVehicles);
-    Matrix<Vector2d, Dynamic, Dynamic> output(numVehicles, regionOfInterest.rows()+2);
+    Point2DVector output;
     VectorXi number_of_outputs(numVehicles);
     getSearchAreas(numVehicles, vehicleStartingPoints, regionOfInterest, error, 1, output, number_of_outputs);
     validateTestCase(numVehicles, error, regionOfInterest, output, number_of_outputs);
